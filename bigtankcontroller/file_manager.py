@@ -3,6 +3,7 @@ import sys
 import datetime
 import logging
 import subprocess as sp
+import shutil
 from bigtankcontroller.utils import generate_logging_decorator
 
 # establish  filesystem locations
@@ -46,12 +47,13 @@ class ProjectFileManager:
             logger.warning(f'moving videos to cloud may have failed: \n {video_move_out.stderr}')
         else:
             logger.debug('video move completed')
-        logger.debug('copying logs to cloud')
-        #TODO: resolve active log modification stopping upload. Copy log directory to project directory then move?
-        log_copy_command = ['rclone', 'copy', str(self.log_dir.resolve()), str(self.cloud_log_dir)]
-        log_copy_out = sp.run(log_copy_command, capture_output=True, encoding='utf-8')
-        if log_copy_out.stderr:
-            logger.warning(f'copying logs to cloud may have failed: \n {log_copy_out.stderr}')
+        logger.debug('copying logs to project folder')
+        shutil.copytree(str(self.log_dir), str(self.project_dir / 'logs'), dirs_exist_ok=True)
+        logger.debug('moving copied logs to cloud')
+        log_move_command = ['rclone', 'move', str(self.project_dir / 'logs'), str(self.cloud_log_dir)]
+        log_move_out = sp.run(log_move_command, capture_output=True, encoding='utf-8')
+        if log_move_out.stderr:
+            logger.warning(f'copying logs to cloud may have failed: \n {log_move_out.stderr}')
         else:
             logger.debug('log copy completed')
 
