@@ -2,7 +2,7 @@
 
 ## Installation (Windows)
 1. create an anaconda environment install required libraries:
-   - conda install pyyaml requests urllib3
+   - conda install pyyaml requests urllib3 opencv
    - pip install pause
 2. Download rclone, unzip, and place the executable somewhere safe (I used C:\Program Files\Rclone\rclone.exe). 
 Add the path the enclosing directory to your Path environment variable so that you can run
