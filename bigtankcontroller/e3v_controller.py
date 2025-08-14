@@ -55,18 +55,33 @@ class E3vController:
             logger.error('Cannot retrieve camera list from Watchtower')
             return False
         
-        # Check that all our cameras are present and connected
-        camera_dict = {cam.get('Serial'): cam for cam in cameras}
+        # Create a dictionary mapping serial numbers to camera info
+        camera_dict = {}
+        for cam in cameras:
+            hostname = cam.get('Hostname', '')
+            if hostname.endswith('.local.'):
+                serial = hostname[:-7]  # Remove '.local.' suffix
+                camera_dict[serial] = cam
         
+        # Check that all our cameras are present and ready
         for serial in self.cam_serials:
             if serial not in camera_dict:
                 logger.error(f'Camera {serial} not found in system')
                 return False
             
             cam_info = camera_dict[serial]
-            # Check if camera appears connected (exact status fields depend on API response)
-            if not cam_info.get('Connected', True):  # Default True if field not present
-                logger.error(f'Camera {serial} not connected')
+            
+            # Check camera status fields
+            if cam_info.get('Alivestate') != 3:
+                logger.error(f'Camera {serial} not alive (Alivestate: {cam_info.get("Alivestate")})')
+                return False
+                
+            if cam_info.get('Runstate') != 1:
+                logger.error(f'Camera {serial} not running (Runstate: {cam_info.get("Runstate")})')
+                return False
+                
+            if not cam_info.get('BoundTo', {}).get('Valid'):
+                logger.error(f'Camera {serial} not bound to controller')
                 return False
         
         logger.info(f'All {len(self.cam_serials)} cameras ready for recording')

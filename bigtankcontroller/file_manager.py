@@ -32,7 +32,7 @@ class ProjectFileManager:
 
     @logging_decorator
     def update_daily_video_dir(self):
-        daily_dir_path = self.video_dir / 'originals' / datetime.date.today().isoformat()
+        daily_dir_path = self.video_dir / datetime.date.today().isoformat()
         daily_dir_path.mkdir(exist_ok=True, parents=True)
         logger.debug(f'daily video dir path updated to {daily_dir_path}')
         self.daily_video_dir = daily_dir_path
