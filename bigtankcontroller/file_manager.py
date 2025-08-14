@@ -4,8 +4,6 @@ import datetime
 import logging
 import subprocess as sp
 import shutil
-import cv2
-import time
 from bigtankcontroller.utils import generate_logging_decorator
 
 # establish  filesystem locations
