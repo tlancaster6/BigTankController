@@ -41,45 +41,7 @@ class ProjectFileManager:
         return daily_dir_path
 
     @logging_decorator
-    def prep_videos_for_upload(self, rotate=True, video_dir=None):
-        if not video_dir:
-            video_dir = self.daily_video_dir
-        logger.debug(f'prepping videos from {str(video_dir)} for upload')
-        video_paths = video_dir.glob('*.mp4')
-        for vp in video_paths:
-            try:
-                self.prep_video(vp, rotate=rotate)
-            except Exception as e:
-                logger.warning(f'video prep failed for {vp.name} with exception {e}')
-
-    @logging_decorator
-    def prep_video(self, video_path, rotate=True):
-        start = time.time()
-        vp = video_path
-        logger.debug(f'prepping {vp.stem}')
-        output_path = pathlib.Path(str(vp).replace('originals', 'prepped'))
-        output_path.parent.mkdir(exist_ok=True, parents=True)
-        cap = cv2.VideoCapture(str(vp))
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
-        writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (frame_width, frame_height))
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if rotate:
-                frame = cv2.rotate(frame, cv2.ROTATE_180)
-            writer.write(frame)
-        cap.release()
-        writer.release()
-        logger.debug(f'prep completed in {time.time() - start} seconds')
-        return 0
-
-
-    @logging_decorator
     def upload_data(self):
-        # self.prep_videos_for_upload()
         logger.debug('moving videos to cloud')
         video_move_command = ['rclone', 'move', str(self.video_dir.resolve()), str(self.cloud_video_dir)]
         video_move_out = sp.run(video_move_command, capture_output=True, encoding='utf-8')
