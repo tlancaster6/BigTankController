@@ -45,7 +45,7 @@ class ConfigManager:
         config = {
             'cloud_data_dir': None,   # cloud path, including the rclone remote, where the projects will upload
             'cam_serials': None,
-            'star_hour': 7,
+            'start_hour': 7,
             'stop_hour': 19
             }
         self.config = config

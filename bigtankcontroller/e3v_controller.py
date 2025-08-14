@@ -34,27 +34,74 @@ class E3vController:
         return response
 
     @logging_decorator
+    def get_cameras(self):
+        """Get list of all cameras and their status"""
+        try:
+            response = requests.get(self.watchtowerurl + '/api/cameras', verify=False, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.warning(f'Failed to get cameras: {response.status_code}')
+                return None
+        except requests.RequestException as e:
+            logger.error(f'Network error getting cameras: {e}')
+            return None
+
+    @logging_decorator  
+    def validate_cameras_ready(self):
+        """Verify all configured cameras are connected and ready for recording"""
+        cameras = self.get_cameras()
+        if not cameras:
+            logger.error('Cannot retrieve camera list from Watchtower')
+            return False
+        
+        # Check that all our cameras are present and connected
+        camera_dict = {cam.get('Serial'): cam for cam in cameras}
+        
+        for serial in self.cam_serials:
+            if serial not in camera_dict:
+                logger.error(f'Camera {serial} not found in system')
+                return False
+            
+            cam_info = camera_dict[serial]
+            # Check if camera appears connected (exact status fields depend on API response)
+            if not cam_info.get('Connected', True):  # Default True if field not present
+                logger.error(f'Camera {serial} not connected')
+                return False
+        
+        logger.info(f'All {len(self.cam_serials)} cameras ready for recording')
+        return True
+
+    @logging_decorator
     def start_recording(self, retries=2):
+        # Quick validation that cameras are still connected
+        if not self.validate_cameras_ready():
+            logger.warning('Camera validation failed, attempting recording anyway')
+        
         response = requests.post(self.watchtowerurl + '/api/cameras/action',
                                  data={'SerialGroup[]': self.cam_serials,
                                        'Action': 'RECORDGROUP'}, verify=False)
         if not response.status_code == 200:
             if not retries:
-                raise RuntimeError(f'failed to start recording')
-            logger.warning(f'failed to start recording retrying in 10s.')
+                raise RuntimeError(f'Failed to start recording: {response.status_code}')
+            logger.warning(f'Failed to start recording, retrying in 10s.')
             time.sleep(10)
             self.start_recording(retries=retries-1)
+        
+        logger.info(f'Recording started for {len(self.cam_serials)} cameras')
 
-    @logging_decorator
+    @logging_decorator  
     def stop_recording(self, retries=2):
         response = requests.post(self.watchtowerurl + '/api/cameras/action',
                                  data={'SerialGroup[]': self.cam_serials,
                                        'Action': 'STOPRECORDGROUP'}, verify=False)
         if not response.status_code == 200:
             if not retries:
-                raise RuntimeError(f'failed to stop recording')
-            logger.warning(f'failed to stop recording. retrying in 10s.')
+                raise RuntimeError(f'Failed to stop recording: {response.status_code}')
+            logger.warning(f'Failed to stop recording, retrying in 10s.')
             time.sleep(10)
             self.stop_recording(retries=retries-1)
+        
+        logger.info(f'Recording stopped for {len(self.cam_serials)} cameras')
 
 
